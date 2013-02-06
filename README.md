@@ -12,3 +12,6 @@ The general design is as follows:
   * Series we keep
   * Series we don't keep
 * Notify of what is available.
+
+Interesting series will be kept in a DB:
+  Series name, last episode downloaded, location
