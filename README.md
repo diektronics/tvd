@@ -15,3 +15,4 @@ The general design is as follows:
 
 Interesting series will be kept in a DB:
   Series name, last episode downloaded, location
+  Check https://github.com/Go-SQL-Driver/MySQL/
