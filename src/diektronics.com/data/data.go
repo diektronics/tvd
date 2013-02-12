@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -35,10 +36,17 @@ func (i Item) Tokenize() (name, episode string) {
 }
 
 func (i Item) Link() (link string) {
-	stuff := `"http://netload.in/.*720p.*\.mkv\.htm"`
+	name, episode := i.Tokenize()
+	titleEp := fmt.Sprintf("%s\\.%s\\.720p",
+		strings.ToLower(strings.Replace(name, " ", "\\.", -1)),
+		strings.ToLower(episode))
+	stuff := `http://netload.in/\w+/` + titleEp
 	linkRegexp, _ := regexp.Compile(stuff)
-	link = linkRegexp.FindString(strings.ToLower(i.Content))
-	link = strings.Replace(link, "\"", "", -2)
+	linkStart := linkRegexp.FindIndex([]byte(strings.ToLower(i.Content)))
+	if len(linkStart) != 0 {
+		parts := strings.Split(i.Content[linkStart[0]:], "\"")
+		link = parts[0]
+	}
 	return
 }
 
@@ -65,7 +73,7 @@ func (q Query) After(otherQ Query) (bool, error) {
 	return parsedTime.After(otherParsedTime), nil
 }
 
-func GetShows() (Query, error) {
+func Shows() (Query, error) {
 	var q Query
 	stuff, err := http.Get("http://www.rlsbb.com/category/tv-shows/feed/")
 	if err != nil {
