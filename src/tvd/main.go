@@ -20,13 +20,13 @@ func Download(title, episode, link, location string) {
 		title,
 		season)
 	filename := fmt.Sprintf("%s - %s.mkv", title, episode)
-	fmt.Printf("getting %q %q via %q to be stored in %q",
+	fmt.Printf("getting %q %q via %q to be stored in %q\n",
 		title,
 		episode,
 		link,
 		destination)
 	cmd_str := "/usr/local/bin/plowdown" +
-		fmt.Sprintf("--output-directory=%q", destination) +
+		fmt.Sprintf(" --output-directory=%q ", destination) +
 		link
 	cmd := strings.Fields(cmd_str)
 	err := exec.Command(cmd[0], cmd[1:]...).Run()
@@ -34,7 +34,7 @@ func Download(title, episode, link, location string) {
 		fmt.Println("err: ", err)
 		return
 	}
-	fmt.Printf("%q download complete", filename)
+	fmt.Printf("%q download complete\n", filename)
 }
 
 func main() {
@@ -103,7 +103,6 @@ func main() {
 			}
 
 			oldQuery = query
-			return
 		}
 		time.Sleep(20 * time.Minute)
 	}

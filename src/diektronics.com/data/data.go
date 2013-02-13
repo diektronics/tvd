@@ -37,7 +37,7 @@ func (i Item) Tokenize() (name, episode string) {
 
 func (i Item) Link() (link string) {
 	name, episode := i.Tokenize()
-	titleEp := fmt.Sprintf("%s\\.%s\\.720p",
+	titleEp := fmt.Sprintf("%s\\.%s.*\\.720p",
 		strings.ToLower(strings.Replace(name, " ", "\\.", -1)),
 		strings.ToLower(episode))
 	stuff := `http://netload.in/\w+/` + titleEp
@@ -85,6 +85,8 @@ func Shows() (Query, error) {
 	if err != nil {
 		return q, err
 	}
+
+	fmt.Printf("%s\n", body)
 
 	err = xml.Unmarshal([]byte(string(body)), &q)
 	if err != nil {
