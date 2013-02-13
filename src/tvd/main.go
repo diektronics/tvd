@@ -25,10 +25,9 @@ func Download(title, episode, link, location string) {
 		episode,
 		link,
 		destination)
-	cmd_str := "/usr/local/bin/plowdown" +
-		fmt.Sprintf(" --output-directory=%q ", destination) +
-		link
-	cmd := strings.Fields(cmd_str)
+	cmd := []string{"/usr/local/bin/plowdown",
+		fmt.Sprintf(" --output-directory=%q ", destination),
+		link}
 	fmt.Println(cmd[1])
 	err := exec.Command(cmd[0], cmd[1:]...).Run()
 	if err != nil {
