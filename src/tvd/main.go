@@ -5,6 +5,7 @@ import (
 	"diektronics.com/data"
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -14,13 +15,26 @@ func Download(title, episode, link, location string) {
 	parts := strings.Split(episode, "E")
 	season, _ := strconv.Atoi(strings.Trim(parts[0], "S"))
 
-	destination := fmt.Sprintf("%s/%s/Season%d/%s - %s.mkv",
+	destination := fmt.Sprintf("%s/%s/Season%d",
 		location,
 		title,
-		season,
+		season)
+	filename := fmt.Sprintf("%s - %s.mkv", title, episode)
+	fmt.Printf("getting %q %q via %q to be stored in %q",
 		title,
-		episode)
-	fmt.Printf("getting %q %q via %q to be stored in %q", title, episode, link, destination)
+		episode,
+		link,
+		destination)
+	cmd_str := "/usr/local/bin/plowdown" +
+		fmt.Sprintf("--output-directory=%q", destination) +
+		link
+	cmd := strings.Fields(cmd_str)
+	err := exec.Command(cmd[0], cmd[1:]...).Run()
+	if err != nil {
+		fmt.Println("err: ", err)
+		return
+	}
+	fmt.Printf("%q download complete", filename)
 }
 
 func main() {
