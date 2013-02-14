@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"diektronics.com/notifier"
 	"fmt"
 	"os"
 	"os/exec"
@@ -39,4 +40,5 @@ func Download(title, episode, link, location string) {
 	}
 
 	fmt.Printf("%q download complete\n", filename)
+	notifier.Notify(newFilename)
 }
