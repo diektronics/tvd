@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 func Download(title, episode, link, location string) {
@@ -31,8 +31,8 @@ func Download(title, episode, link, location string) {
 		return
 	}
 	parts = strings.Split(link, "/")
-	oldFilename := destination + strings.Replace(parts[len(parts)-1], ".htm", "", 1)
-	newFilename := destination + filename
+	oldFilename := fmt.Sprintf("%s/%s", destination, strings.Replace(parts[len(parts)-1], ".htm", "", 1))
+	newFilename := fmt.Sprintf("%s/%s", destination, filename)
 	if err := os.Rename(oldFilename, newFilename); err != nil {
 		fmt.Println("err: ", err)
 		return
