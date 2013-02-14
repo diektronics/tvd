@@ -5,6 +5,7 @@ import (
 	"diektronics.com/data"
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -28,11 +29,19 @@ func Download(title, episode, link, location string) {
 	cmd := []string{"/usr/local/bin/plowdown",
 		"--output-directory=" + destination,
 		link}
-	err := exec.Command(cmd[0], cmd[1:]...).Run()
-	if err != nil {
+
+	if err := exec.Command(cmd[0], cmd[1:]...).Run(); err != nil {
 		fmt.Println("err: ", err)
 		return
 	}
+	parts = strings.Split(link, "/")
+	oldFilename := destination + strings.Replace(parts[len(parts)-1], ".htm", "", 1)
+	newFilename := destination + filename
+	if err := os.Rename(oldFilename, newFilename); err != nil {
+		fmt.Println("err: ", err)
+		return
+	}
+
 	fmt.Printf("%q download complete\n", filename)
 }
 
