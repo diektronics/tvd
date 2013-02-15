@@ -6,6 +6,7 @@ import (
 	"diektronics.com/downloader"
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
+	"regexp"
 	"time"
 )
 
@@ -34,7 +35,15 @@ func main() {
 
 			for _, show := range query.ItemList {
 				title, episode := show.Tokenize()
-				dbQuery := fmt.Sprintf("SELECT latest_ep, location FROM series where name=%q", title)
+				// RlsBB doesn't use parenthesis when a Series name has a year attached to it,
+				// eg. Castle (2009), but the DB has them.
+				// So, it "title" ends with four digits, we are going to add
+				// parenthesis around it.
+				stuff := `\d\d\d\d$`
+				epsRegexp, _ := regexp.Compile(stuff)
+				title = epsRegexp.ReplaceAllString(title, "($0)")
+
+				dbQuery := fmt.Sprintf("SELECT name, latest_ep, location FROM series where name=%q", title)
 				rows, err := db.Query(dbQuery)
 				if err != nil {
 					fmt.Println("err: ", err)
@@ -47,7 +56,7 @@ func main() {
 				// Fetch rows. Only one results, if any
 				for rows.Next() {
 					// Scan the value to string
-					err = rows.Scan(&latest_ep, &location)
+					err = rows.Scan(&title, &latest_ep, &location)
 					if err != nil {
 						fmt.Println("err: ", err)
 						return
