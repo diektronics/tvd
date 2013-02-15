@@ -10,6 +10,13 @@ import (
 )
 
 func main() {
+	// we are not going to get more than 10 eps to download...
+	var queue = make(chan *downloader.Episode, 10)
+	// prepare the downloaders, 4 to not destroy BW
+	for i := 0; i < 4; i++ {
+		go downloader.Download(queue)
+	}
+
 	var oldQuery data.Query
 	for {
 		query, err := data.Shows()
@@ -66,7 +73,8 @@ func main() {
 								return
 							}
 							fmt.Println("download the thing")
-							go downloader.Download(title, episode, link, location)
+							episodeData := downloader.Episode{title, episode, link, location}
+							queue <- &episodeData
 						}
 					}
 
