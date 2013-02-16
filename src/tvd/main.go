@@ -29,7 +29,7 @@ func main() {
 			newer, err = query.After(*oldQuery)
 			if err != nil {
 				fmt.Println("err: ", err)
-				return
+				continue
 			}
 		}
 
@@ -37,7 +37,7 @@ func main() {
 			interestingShows, err := data.InterestingShows(query)
 			if err != nil {
 				fmt.Println("err: ", err)
-				return
+				continue
 			}
 
 			for _, show := range interestingShows {

@@ -88,7 +88,7 @@ func AllShows() (q *Query, err error) {
 		return
 	}
 
-	fmt.Printf("%s\n", body)
+	//fmt.Printf("%s\n", body)
 
 	err = xml.Unmarshal([]byte(string(body)), &q)
 	if err != nil {
