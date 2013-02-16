@@ -24,10 +24,13 @@ func main() {
 			return
 		}
 
-		newer, err := query.After(*oldQuery)
-		if err != nil {
-			fmt.Println("err: ", err)
-			return
+		newer := true
+		if oldQuery != nil {
+			newer, err = query.After(*oldQuery)
+			if err != nil {
+				fmt.Println("err: ", err)
+				return
+			}
 		}
 
 		if newer {
