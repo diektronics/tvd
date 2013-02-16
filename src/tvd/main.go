@@ -21,7 +21,7 @@ func main() {
 		query, err := data.AllShows()
 		if err != nil {
 			fmt.Println("err: ", err)
-			return
+			continue
 		}
 
 		newer := true
