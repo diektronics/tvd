@@ -1,94 +1,44 @@
 package main
 
 import (
-	"database/sql"
 	"diektronics.com/data"
 	"diektronics.com/downloader"
+	"diektronics.com/episode"
 	"fmt"
-	_ "github.com/Go-SQL-Driver/MySQL"
-	"regexp"
 	"time"
 )
 
 func main() {
 	// we are not going to get more than 10 eps to download...
-	var queue = make(chan *downloader.Episode, 10)
+	var queue = make(chan *episode.Episode, 10)
 	// prepare the downloaders, 4 to not destroy BW
 	for i := 0; i < 4; i++ {
-		go downloader.Download(queue)
+		go downloader.Download(queue, i)
 	}
 
-	var oldQuery data.Query
+	var oldQuery *data.Query
 	for {
-		query, err := data.Shows()
+		query, err := data.AllShows()
 		if err != nil {
 			fmt.Println("err: ", err)
 			return
 		}
 
-		newer, err := query.After(oldQuery)
+		newer, err := query.After(*oldQuery)
 		if err != nil {
 			fmt.Println("err: ", err)
 			return
 		}
 
 		if newer {
-			db, err := sql.Open("mysql", "tvd:tvd@/tvd?charset=utf8")
+			interestingShows, err := data.InterestingShows(query)
 			if err != nil {
 				fmt.Println("err: ", err)
 				return
 			}
-			defer db.Close()
 
-			for _, show := range query.ItemList {
-				title, episode := show.Tokenize()
-				// RlsBB doesn't use parenthesis when a Series name has a year attached to it,
-				// eg. Castle (2009), but the DB has them.
-				// So, it "title" ends with four digits, we are going to add
-				// parenthesis around it.
-				stuff := `\d\d\d\d$`
-				epsRegexp, _ := regexp.Compile(stuff)
-				title = epsRegexp.ReplaceAllString(title, "($0)")
-
-				dbQuery := fmt.Sprintf("SELECT name, latest_ep, location FROM series where name=%q", title)
-				rows, err := db.Query(dbQuery)
-				if err != nil {
-					fmt.Println("err: ", err)
-					return
-				}
-
-				var latest_ep string
-				var location string
-
-				// Fetch rows. Only one results, if any
-				for rows.Next() {
-					// Scan the value to string
-					err = rows.Scan(&title, &latest_ep, &location)
-					if err != nil {
-						fmt.Println("err: ", err)
-						return
-					}
-					if latest_ep < episode {
-						fmt.Printf("title: %q episode: %q latest_ep: %q\n", title, episode, latest_ep)
-						link := show.Link()
-
-						if link != "" {
-							fmt.Printf("link: %q\n", link)
-							fmt.Println("update latest_ep in DB")
-							dbQuery = fmt.Sprintf("UPDATE series SET latest_ep=%q WHERE name=%q", episode, title)
-							_, err = db.Exec(dbQuery)
-							if err != nil {
-								fmt.Println("err: ", err)
-								return
-							}
-							fmt.Println("download the thing")
-							episodeData := downloader.Episode{title, episode, link, location}
-							queue <- &episodeData
-						}
-					}
-
-				}
-
+			for _, show := range interestingShows {
+				queue <- show
 			}
 
 			oldQuery = query

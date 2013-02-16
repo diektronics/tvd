@@ -1,8 +1,11 @@
 package data
 
 import (
+	"database/sql"
+	"diektronics.com/episode"
 	"encoding/xml"
 	"fmt"
+	_ "github.com/Go-SQL-Driver/MySQL"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -20,7 +23,7 @@ type Item struct {
 	Content string `xml:"encoded"`
 }
 
-func (i Item) Tokenize() (name, episode string) {
+func (i Item) Tokenize() (name, eps string) {
 	stuff := `S\d\dE\d\d`
 	epsRegexp, _ := regexp.Compile(stuff)
 	start := epsRegexp.FindIndex([]byte(strings.ToUpper(i.Title)))
@@ -30,16 +33,16 @@ func (i Item) Tokenize() (name, episode string) {
 	}
 	name = i.Title[:start[0]-1]
 	parts := strings.Fields(i.Title[start[0]:])
-	episode = parts[0]
+	eps = parts[0]
 
 	return
 }
 
 func (i Item) Link() (link string) {
-	name, episode := i.Tokenize()
+	name, eps := i.Tokenize()
 	titleEp := fmt.Sprintf("%s\\.%s.*\\.720p",
 		strings.ToLower(strings.Replace(name, " ", "\\.", -1)),
-		strings.ToLower(episode))
+		strings.ToLower(eps))
 	stuff := `http://netload.in/\w+/` + titleEp
 	linkRegexp, _ := regexp.Compile(stuff)
 	linkStart := linkRegexp.FindIndex([]byte(strings.ToLower(i.Content)))
@@ -73,25 +76,87 @@ func (q Query) After(otherQ Query) (bool, error) {
 	return parsedTime.After(otherParsedTime), nil
 }
 
-func Shows() (Query, error) {
-	var q Query
+func AllShows() (q *Query, err error) {
 	stuff, err := http.Get("http://www.rlsbb.com/category/tv-shows/feed/")
 	if err != nil {
-		return q, err
+		return
 	}
 	defer stuff.Body.Close()
 
 	body, err := ioutil.ReadAll(stuff.Body)
 	if err != nil {
-		return q, err
+		return
 	}
 
 	fmt.Printf("%s\n", body)
 
 	err = xml.Unmarshal([]byte(string(body)), &q)
 	if err != nil {
-		return q, err
+		return
 	}
 
-	return q, nil
+	return
+}
+
+func parenthesize(str string) string {
+	// RlsBB doesn't use parenthesis when a Series name has a year attached to it,
+	// eg. Castle (2009), but the DB has them.
+	// So, it "title" ends with four digits, we are going to add
+	// parenthesis around it.
+	stuff := `\d\d\d\d$`
+	epsRegexp, _ := regexp.Compile(stuff)
+	return epsRegexp.ReplaceAllString(str, "($0)")
+}
+
+func InterestingShows(query *Query) (interestingShows []*episode.Episode, err error) {
+	db, err := sql.Open("mysql", "tvd:tvd@/tvd?charset=utf8")
+	if err != nil {
+		return
+	}
+	defer db.Close()
+
+	for _, show := range query.ItemList {
+		title, eps := show.Tokenize()
+		title = parenthesize(title)
+
+		dbQuery := fmt.Sprintf("SELECT latest_ep, location FROM series where name=%q", title)
+		var rows *sql.Rows
+		rows, err = db.Query(dbQuery)
+		if err != nil {
+			return
+		}
+
+		var latest_ep string
+		var location string
+
+		// Fetch rows. Only one results, if any
+		for rows.Next() {
+			// Scan the value to string
+			err = rows.Scan(&latest_ep, &location)
+			if err != nil {
+				return
+			}
+			if latest_ep < eps {
+				fmt.Printf("title: %q episode: %q latest_ep: %q\n", title, eps, latest_ep)
+				link := show.Link()
+
+				if link != "" {
+					fmt.Printf("link: %q\n", link)
+					fmt.Println("update latest_ep in DB")
+					dbQuery = fmt.Sprintf("UPDATE series SET latest_ep=%q WHERE name=%q", eps, title)
+					_, err = db.Exec(dbQuery)
+					if err != nil {
+						return
+					}
+					fmt.Println("download the thing")
+					episodeData := episode.Episode{title, eps, link, location}
+					interestingShows = append(interestingShows, &episodeData)
+				}
+			}
+
+		}
+
+	}
+
+	return
 }
