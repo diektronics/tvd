@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+func reportAndWait(err error) {
+	fmt.Println("err: ", err)
+	time.Sleep(20 * time.Minute)
+}
+
 func main() {
 	// we are not going to get more than 10 eps to download...
 	var queue = make(chan *episode.Episode, 10)
@@ -20,7 +25,7 @@ func main() {
 	for {
 		query, err := data.AllShows()
 		if err != nil {
-			fmt.Println("err: ", err)
+			reportAndWait(err)
 			continue
 		}
 
@@ -28,7 +33,7 @@ func main() {
 		if oldQuery != nil {
 			newer, err = query.After(*oldQuery)
 			if err != nil {
-				fmt.Println("err: ", err)
+				reportAndWait(err)
 				continue
 			}
 		}
@@ -36,7 +41,7 @@ func main() {
 		if newer {
 			interestingShows, err := data.InterestingShows(query)
 			if err != nil {
-				fmt.Println("err: ", err)
+				reportAndWait(err)
 				continue
 			}
 
