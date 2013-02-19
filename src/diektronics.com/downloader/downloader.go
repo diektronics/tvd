@@ -12,7 +12,7 @@ import (
 )
 
 func Download(queue chan *episode.Episode, i int) {
-	fmt.Printf("%d ready for action!\n", i)
+	log.Printf("%d ready for action!\n", i)
 	for {
 		// wait for data
 		ep := <-queue
