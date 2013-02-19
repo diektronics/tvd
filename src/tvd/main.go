@@ -4,12 +4,12 @@ import (
 	"diektronics.com/data"
 	"diektronics.com/downloader"
 	"diektronics.com/episode"
-	"fmt"
+	"log"
 	"time"
 )
 
 func reportAndWait(err error) {
-	fmt.Println("err: ", err)
+	log.Println("err: ", err)
 	time.Sleep(20 * time.Minute)
 }
 
