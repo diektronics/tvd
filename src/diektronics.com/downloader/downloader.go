@@ -4,6 +4,7 @@ import (
 	"diektronics.com/episode"
 	"diektronics.com/notifier"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -24,7 +25,7 @@ func Download(queue chan *episode.Episode, i int) {
 			ep.Title,
 			season)
 		filename := fmt.Sprintf("%s - %s.mkv", ep.Title, ep.Episode)
-		fmt.Printf("%d: getting %q %q via %q to be stored in %q\n",
+		log.Printf("%d: getting %q %q via %q to be stored in %q\n",
 			i,
 			ep.Title,
 			ep.Episode,
@@ -35,18 +36,18 @@ func Download(queue chan *episode.Episode, i int) {
 			ep.Link}
 
 		if err := exec.Command(cmd[0], cmd[1:]...).Run(); err != nil {
-			fmt.Println(i, " err: ", err)
+			log.Println(i, " err: ", err)
 			continue
 		}
 		parts = strings.Split(ep.Link, "/")
 		oldFilename := fmt.Sprintf("%s/%s", destination, strings.Replace(parts[len(parts)-1], ".htm", "", 1))
 		newFilename := fmt.Sprintf("%s/%s", destination, filename)
 		if err := os.Rename(oldFilename, newFilename); err != nil {
-			fmt.Println(i, " err: ", err)
+			log.Println(i, " err: ", err)
 			continue
 		}
 
-		fmt.Printf("%d: %q download complete\n", i, filename)
+		log.Printf("%d: %q download complete\n", i, filename)
 		notifier.Notify(newFilename)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -137,18 +138,18 @@ func InterestingShows(query *Query) (interestingShows []*episode.Episode, err er
 				return
 			}
 			if latest_ep < eps {
-				fmt.Printf("title: %q episode: %q latest_ep: %q\n", title, eps, latest_ep)
+				log.Printf("title: %q episode: %q latest_ep: %q\n", title, eps, latest_ep)
 				link := show.Link()
 
 				if link != "" {
-					fmt.Printf("link: %q\n", link)
-					fmt.Println("update latest_ep in DB")
+					log.Printf("link: %q\n", link)
+					log.Println("update latest_ep in DB")
 					dbQuery = fmt.Sprintf("UPDATE series SET latest_ep=%q WHERE name=%q", eps, title)
 					_, err = db.Exec(dbQuery)
 					if err != nil {
 						return
 					}
-					fmt.Println("download the thing")
+					log.Println("download the thing")
 					episodeData := episode.Episode{title, eps, link, location}
 					interestingShows = append(interestingShows, &episodeData)
 				}
