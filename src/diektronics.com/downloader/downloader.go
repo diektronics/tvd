@@ -13,10 +13,8 @@ import (
 
 func Download(queue chan *episode.Episode, i int) {
 	log.Printf("%d ready for action!\n", i)
-	for {
-		// wait for data
-		ep := <-queue
-
+	// wait for data
+	for ep := range queue {
 		parts := strings.Split(ep.Episode, "E")
 		season, _ := strconv.Atoi(strings.Trim(parts[0], "S"))
 
