@@ -8,12 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"time"
 )
 
 func reportAndWait(err error) {
-	fmt.Println("err: ", err)
+	log.Println("err: ", err)
 	time.Sleep(20 * time.Minute)
 }
 
@@ -32,17 +33,17 @@ type Message struct {
 func main() {
 	b, err := ioutil.ReadFile(os.Getenv("HOME") + "/.tvd/config.json")
 	if err != nil {
-		fmt.Println("err: ", err)
+		log.Println("err: ", err)
 		return
 	}
 
 	var m Message
 	err = json.Unmarshal(b, &m)
 	if err != nil {
-		fmt.Println("err: ", err)
+		log.Println("err: ", err)
 		return
 	}
-	fmt.Printf("%#v\n", m)
+	log.Printf("%#v\n", m)
 	// we are not going to get more than 10 eps to download...
 	queue := make(chan *episode.Episode, 10)
 	n := notifier.Notifier{m.MailAddr, m.MailPort, m.MailRecipient,

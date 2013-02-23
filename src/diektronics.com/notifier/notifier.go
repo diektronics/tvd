@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"fmt"
+	"log"
 	"net/smtp"
 )
 
@@ -25,6 +26,6 @@ func (n Notifier) Notify(filename string) {
 		addrPort += ":" + n.Port
 	}
 	if err := smtp.SendMail(addrPort, auth, n.Sender, to, content); err != nil {
-		fmt.Println("err: ", err)
+		log.Println("err: ", err)
 	}
 }
