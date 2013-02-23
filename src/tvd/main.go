@@ -6,7 +6,6 @@ import (
 	"diektronics.com/episode"
 	"diektronics.com/notifier"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -43,7 +42,7 @@ func main() {
 		log.Println("err: ", err)
 		return
 	}
-	log.Printf("%#v\n", m)
+
 	// we are not going to get more than 10 eps to download...
 	queue := make(chan *episode.Episode, 10)
 	n := notifier.Notifier{m.MailAddr, m.MailPort, m.MailRecipient,
