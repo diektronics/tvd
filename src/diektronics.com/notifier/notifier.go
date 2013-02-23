@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
+	"strings"
 )
 
 type Notifier struct {
@@ -15,9 +16,11 @@ type Notifier struct {
 }
 
 func (n Notifier) Notify(filename string) {
-	auth := smtp.PlainAuth("", n.Sender, n.Password, n.Addr)
-	to := []string{n.Recipient}
-	header := fmt.Sprintf("From: %s\nTo: %s\nSubject: New file!\n\n", n.Sender, n.Recipient)
+	parts := strings.Split(filename, "/")
+	episode := parts[len(parts)-1]
+
+	header := fmt.Sprintf("From: %s\nTo: %s\nSubject: New file! %s\n\n",
+		n.Sender, n.Recipient, episode)
 	body := fmt.Sprintf("New download complete: %q", filename)
 	content := []byte(header + body)
 
@@ -25,6 +28,9 @@ func (n Notifier) Notify(filename string) {
 	if n.Port != "" {
 		addrPort += ":" + n.Port
 	}
+
+	auth := smtp.PlainAuth("", n.Sender, n.Password, n.Addr)
+	to := []string{n.Recipient}
 	if err := smtp.SendMail(addrPort, auth, n.Sender, to, content); err != nil {
 		log.Println("err: ", err)
 	}
