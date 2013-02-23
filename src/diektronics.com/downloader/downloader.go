@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func Download(queue chan *episode.Episode, i int) {
+func Download(queue chan *episode.Episode, i int, n notifier.Notifier) {
 	for {
 		// wait for data
 		ep := <-queue
@@ -46,6 +46,6 @@ func Download(queue chan *episode.Episode, i int) {
 		}
 
 		fmt.Printf("%d: %q download complete\n", i, filename)
-		notifier.Notify(newFilename)
+		n.Notify(newFilename)
 	}
 }

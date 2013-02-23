@@ -108,8 +108,10 @@ func parenthesize(str string) string {
 	return epsRegexp.ReplaceAllString(str, "($0)")
 }
 
-func InterestingShows(query *Query) (interestingShows []*episode.Episode, err error) {
-	db, err := sql.Open("mysql", "tvd:tvd@/tvd?charset=utf8")
+func InterestingShows(query *Query, user, password, server, database string) (interestingShows []*episode.Episode, err error) {
+	connectionString := fmt.Sprintf("%s:%s@%s/%s?charset=utf8",
+		user, password, server, database)
+	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
 		return
 	}

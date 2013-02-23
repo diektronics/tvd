@@ -5,16 +5,26 @@ import (
 	"net/smtp"
 )
 
-func Notify(filename string) {
-	addr := "smtp.gmail.com:587"
-	auth := smtp.PlainAuth("", "tvd@diektronics.com", "1r3nkA52!!", "smtp.gmail.com")
-	from := "tvd@diektronics.com"
-	to := []string{"diego.carretero@gmail.com"}
-	header := "From: tvd@diektronics.com\nTo: diego.carretero@gmail.com\nSubject: New file!\n\n"
+type Notifier struct {
+	Addr      string
+	Port      string
+	Recipient string
+	Sender    string
+	Password  string
+}
+
+func (n Notifier) Notify(filename string) {
+	auth := smtp.PlainAuth("", n.Sender, n.Password, n.Addr)
+	to := []string{n.Recipient}
+	header := fmt.Sprintf("From: %s\nTo: %s\nSubject: New file!\n\n", n.Sender, n.Recipient)
 	body := fmt.Sprintf("New download complete: %q", filename)
 	content := []byte(header + body)
 
-	if err := smtp.SendMail(addr, auth, from, to, content); err != nil {
+	addrPort := n.Addr
+	if n.Port != "" {
+		addrPort += ":" + n.Port
+	}
+	if err := smtp.SendMail(addrPort, auth, n.Sender, to, content); err != nil {
 		fmt.Println("err: ", err)
 	}
 }
