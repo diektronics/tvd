@@ -5,8 +5,8 @@ series I am currently following.
 
 The general design is as follows:
 * Get RSS from rlsbb.com
-* If if has changed, compare with list of interesting series and check if
-  new eps are available
+* If it has changed, compare with list of interesting series and check if
+  new episodes are available
 * Find NETLOAD links for 720p downloads
 * Get the files in paralel using a pool of workers
   * Rename the files and copy them over to their destination:
@@ -17,4 +17,16 @@ The general design is as follows:
 
 Interesting series will be kept in a DB:
   Series name, last episode downloaded, location
-  Check https://github.com/Go-SQL-Driver/MySQL/
+   $ mysql -u root -p 
+   > grant all on tvd.* to tvd identified by 'tvd';
+   > flush privileges;
+   > quit;
+   $ mysql -u tvd -p
+   > create database tvd;
+   > use tvd;
+   > create table series (serie_id int NOT NULL AUTO_INCREMENT, name varchar(255) NOT NULL, latest_ep varchar(10) DEFAULT NULL, location varchar(255) NOT NULL, PRIMARY KEY (serie_id));
+   > create unique index unique_series_name on series (name);
+
+ TODO:
+    * Do not update a new ep until it has actually been downloaded.
+    * Allow for recovering currently downloading eps and eps in queue.
