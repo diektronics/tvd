@@ -19,14 +19,14 @@ Interesting series will be kept in a DB with a table containing: Series name, la
 
 Commands to generate DB:
 >    $ mysql -u root -p 
->    > grant all on tvd.* to tvd identified by 'tvd';
->    > flush privileges;
->    > quit;
+>    #> grant all on tvd.* to tvd identified by 'tvd';
+>    #> flush privileges;
+>    #> quit;
 >    $ mysql -u tvd -p
->    > create database tvd;
->    > use tvd;
->    > create table series (serie_id int NOT NULL AUTO_INCREMENT, name varchar(255) NOT NULL, latest_ep varchar(10) DEFAULT NULL, location varchar(255) NOT NULL, PRIMARY KEY (serie_id));
->    > create unique index unique_series_name on series (name);
+>    #> create database tvd;
+>    #> use tvd;
+>    #> create table series (serie_id int NOT NULL AUTO_INCREMENT, name varchar(255) NOT NULL, latest_ep varchar(10) DEFAULT NULL, location varchar(255) NOT NULL, PRIMARY KEY (serie_id));
+>    #> create unique index unique_series_name on series (name);
 
 TODO:
 * Do not update a new ep until it has actually been downloaded.
