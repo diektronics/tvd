@@ -78,7 +78,7 @@ func (q Query) After(otherQ Query) (bool, error) {
 }
 
 func AllShows() (q *Query, err error) {
-	stuff, err := http.Get("http://www.rlsbb.com/category/tv-shows/feed/")
+	stuff, err := http.Get("http://www.rlsbb.ru/category/tv-shows/feed/")
 	if err != nil {
 		return
 	}
