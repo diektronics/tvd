@@ -31,14 +31,16 @@ func Download(queue chan *episode.Episode, i int, n notifier.Notifier) {
 			destination)
 		cmd := []string{"/usr/local/bin/plowdown",
 			"--output-directory=" + destination,
+			"--printf=%F",
 			ep.Link}
 
-		if err := exec.Command(cmd[0], cmd[1:]...).Run(); err != nil {
+		output, err := exec.Command(cmd[0], cmd[1:]...).Output()
+		if err != nil {
 			log.Println(i, " err: ", err)
 			continue
 		}
-		parts = strings.Split(ep.Link, "/")
-		oldFilename := fmt.Sprintf("%s/%s", destination, strings.Replace(parts[len(parts)-1], ".htm", "", 1))
+		parts = strings.Split(strings.TrimSpace(string(output)), "\n")
+		oldFilename := parts[len(parts) - 1]
 		newFilename := fmt.Sprintf("%s/%s", destination, filename)
 		if err := os.Rename(oldFilename, newFilename); err != nil {
 			log.Println(i, " err: ", err)
