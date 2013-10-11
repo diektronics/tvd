@@ -37,6 +37,7 @@ func Download(queue chan *episode.Episode, i int, n notifier.Notifier) {
 		output, err := exec.Command(cmd[0], cmd[1:]...).Output()
 		if err != nil {
 			log.Println(i, " err: ", err)
+                        log.Println(i, " output: ", output)
 			continue
 		}
 		parts = strings.Split(strings.TrimSpace(string(output)), "\n")
