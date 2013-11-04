@@ -32,6 +32,7 @@ func Download(queue chan *episode.Episode, i int, n notifier.Notifier) {
 		cmd := []string{"/usr/local/bin/plowdown",
 			"--output-directory=" + destination,
 			"--printf=%F",
+			"--temp-rename",
 			ep.Link}
 
 		output, err := exec.Command(cmd[0], cmd[1:]...).Output()
