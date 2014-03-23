@@ -36,11 +36,11 @@ func Download(queue chan *Episode, i int, n Notifier) {
 		output, err := exec.Command(cmd[0], cmd[1:]...).Output()
 		if err != nil {
 			log.Println(i, " err: ", err)
-                        log.Println(i, " output: ", output)
+			log.Println(i, " output: ", output)
 			continue
 		}
 		parts = strings.Split(strings.TrimSpace(string(output)), "\n")
-		oldFilename := parts[len(parts) - 1]
+		oldFilename := parts[len(parts)-1]
 		newFilename := fmt.Sprintf("%s/%s", destination, filename)
 		if err := os.Rename(oldFilename, newFilename); err != nil {
 			log.Println(i, " err: ", err)
