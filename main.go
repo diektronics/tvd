@@ -1,10 +1,7 @@
 package main
 
 import (
-	"diektronics.com/data"
-	"diektronics.com/downloader"
-	"diektronics.com/episode"
-	"diektronics.com/notifier"
+	"diektronics.com/carter/tvd/lib"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -17,7 +14,7 @@ func reportAndWait(err error) {
 	time.Sleep(20 * time.Minute)
 }
 
-type Message struct {
+type Configuration struct {
 	DbUser        string
 	DbServer      string
 	DbPassword    string
@@ -36,25 +33,25 @@ func main() {
 		return
 	}
 
-	var m Message
-	err = json.Unmarshal(b, &m)
+	var c Configuration
+	err = json.Unmarshal(b, &c)
 	if err != nil {
 		log.Println("err: ", err)
 		return
 	}
 
 	// we are not going to get more than 10 eps to download...
-	queue := make(chan *episode.Episode, 10)
-	n := notifier.Notifier{m.MailAddr, m.MailPort, m.MailRecipient,
-		m.MailSender, m.MailPassword}
+	queue := make(chan *lib.Episode, 10)
+	n := lib.Notifier{c.MailAddr, c.MailPort, c.MailRecipient,
+		c.MailSender, c.MailPassword}
 	// prepare the downloaders, 4 to not destroy BW
 	for i := 0; i < 4; i++ {
-		go downloader.Download(queue, i, n)
+		go lib.Download(queue, i, n)
 	}
 
-	var oldQuery *data.Query
+	var oldQuery *lib.Query
 	for {
-		query, err := data.AllShows()
+		query, err := lib.AllShows()
 		if err != nil {
 			reportAndWait(err)
 			continue
@@ -70,8 +67,8 @@ func main() {
 		}
 
 		if newer {
-			interestingShows, err := data.InterestingShows(query, m.DbUser,
-				m.DbPassword, m.DbServer, m.DbDatabase)
+			interestingShows, err := lib.InterestingShows(query, c.DbUser,
+				c.DbPassword, c.DbServer, c.DbDatabase)
 			if err != nil {
 				reportAndWait(err)
 				continue

@@ -1,8 +1,6 @@
-package downloader
+package lib
 
 import (
-	"diektronics.com/episode"
-	"diektronics.com/notifier"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +9,7 @@ import (
 	"strings"
 )
 
-func Download(queue chan *episode.Episode, i int, n notifier.Notifier) {
+func Download(queue chan *Episode, i int, n Notifier) {
 	log.Printf("%d ready for action!\n", i)
 	// wait for data
 	for ep := range queue {

@@ -1,4 +1,4 @@
-package episode
+package lib
 
 type Episode struct {
 	Title    string

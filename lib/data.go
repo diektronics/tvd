@@ -1,8 +1,7 @@
-package data
+package lib
 
 import (
 	"database/sql"
-	"diektronics.com/episode"
 	"encoding/xml"
 	"fmt"
 	_ "github.com/Go-SQL-Driver/MySQL"
@@ -78,7 +77,7 @@ func (q Query) After(otherQ Query) (bool, error) {
 }
 
 func AllShows() (q *Query, err error) {
-	stuff, err := http.Get("http://www.rlsbb.ru/category/tv-shows/feed/")
+	stuff, err := http.Get("http://www.rlsbb.com/category/tv-shows/feed/")
 	if err != nil {
 		return
 	}
@@ -102,14 +101,14 @@ func AllShows() (q *Query, err error) {
 func parenthesize(str string) string {
 	// RlsBB doesn't use parenthesis when a Series name has a year attached to it,
 	// eg. Castle (2009), but the DB has them.
-	// So, it "title" ends with four digits, we are going to add
+	// So, if "title" ends with four digits, we are going to add
 	// parenthesis around it.
 	stuff := `\d\d\d\d$`
 	epsRegexp, _ := regexp.Compile(stuff)
 	return epsRegexp.ReplaceAllString(str, "($0)")
 }
 
-func InterestingShows(query *Query, user, password, server, database string) (interestingShows []*episode.Episode, err error) {
+func InterestingShows(query *Query, user, password, server, database string) (interestingShows []*Episode, err error) {
 	connectionString := fmt.Sprintf("%s:%s@%s/%s?charset=utf8",
 		user, password, server, database)
 	db, err := sql.Open("mysql", connectionString)
@@ -152,7 +151,7 @@ func InterestingShows(query *Query, user, password, server, database string) (in
 						return
 					}
 					log.Println("download the thing")
-					episodeData := episode.Episode{title, eps, link, location}
+					episodeData := Episode{title, eps, link, location}
 					interestingShows = append(interestingShows, &episodeData)
 				}
 			}
