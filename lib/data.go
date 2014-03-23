@@ -24,7 +24,7 @@ type Item struct {
 }
 
 func (i Item) Tokenize() (name, eps string) {
-	stuff := `S\d\dE\d\d`
+	stuff := `S\d{2}E\d{2}`
 	epsRegexp, _ := regexp.Compile(stuff)
 	start := epsRegexp.FindIndex([]byte(strings.ToUpper(i.Title)))
 	if start == nil {
@@ -103,7 +103,7 @@ func parenthesize(str string) string {
 	// eg. Castle (2009), but the DB has them.
 	// So, if "title" ends with four digits, we are going to add
 	// parenthesis around it.
-	stuff := `\d\d\d\d$`
+	stuff := `\d{4}$`
 	epsRegexp, _ := regexp.Compile(stuff)
 	return epsRegexp.ReplaceAllString(str, "($0)")
 }
