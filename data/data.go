@@ -1,4 +1,4 @@
-package lib
+package data
 
 import (
 	"database/sql"
@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"diektronics.com/carter/tvd/episode"
 )
 
 type Query struct {
@@ -108,7 +110,7 @@ func parenthesize(str string) string {
 	return epsRegexp.ReplaceAllString(str, "($0)")
 }
 
-func InterestingShows(query *Query, user, password, server, database string) (interestingShows []*Episode, err error) {
+func InterestingShows(query *Query, user, password, server, database string) (interestingShows []*episode.Episode, err error) {
 	connectionString := fmt.Sprintf("%s:%s@%s/%s?charset=utf8",
 		user, password, server, database)
 	db, err := sql.Open("mysql", connectionString)
@@ -151,7 +153,7 @@ func InterestingShows(query *Query, user, password, server, database string) (in
 						return
 					}
 					log.Println("download the thing")
-					episodeData := Episode{title, eps, link, location}
+					episodeData := episode.Episode{title, eps, link, location}
 					interestingShows = append(interestingShows, &episodeData)
 				}
 			}
