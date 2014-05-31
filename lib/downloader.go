@@ -27,16 +27,16 @@ func Download(queue chan *Episode, i int, n Notifier) {
 			ep.Episode,
 			ep.Link,
 			destination)
-		cmd := []string{"/usr/local/bin/plowdown",
+		cmd := []string{"/home/carter/bin/plowdown",
+			"--engine=xfilesharing",
 			"--output-directory=" + destination,
 			"--printf=%F",
 			"--temp-rename",
 			ep.Link}
-
-		output, err := exec.Command(cmd[0], cmd[1:]...).Output()
+		output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 		if err != nil {
 			log.Println(i, " err: ", err)
-                        log.Println(i, " output: ", output)
+                        log.Println(i, " output: ", string(output))
 			continue
 		}
 		parts = strings.Split(strings.TrimSpace(string(output)), "\n")

@@ -43,7 +43,7 @@ func (i Item) Link() (link string) {
 	titleEp := fmt.Sprintf("%s\\.%s.*\\.720p",
 		strings.ToLower(strings.Replace(name, " ", "\\.", -1)),
 		strings.ToLower(eps))
-	stuff := `http://netload.in/\w+/` + titleEp
+	stuff := `http://fileom.com/\w+/` + titleEp
 	linkRegexp, _ := regexp.Compile(stuff)
 	linkStart := linkRegexp.FindIndex([]byte(strings.ToLower(i.Content)))
 	if len(linkStart) != 0 {
