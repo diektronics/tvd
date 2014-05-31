@@ -1,4 +1,4 @@
-package lib
+package data
 
 import (
 	"database/sql"
@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"diektronics.com/carter/tvd/episode"
 )
 
 type Query struct {
@@ -24,7 +26,7 @@ type Item struct {
 }
 
 func (i Item) Tokenize() (name, eps string) {
-	stuff := `S\d\dE\d\d`
+	stuff := `S\d{2}E\d{2}`
 	epsRegexp, _ := regexp.Compile(stuff)
 	start := epsRegexp.FindIndex([]byte(strings.ToUpper(i.Title)))
 	if start == nil {
@@ -103,12 +105,12 @@ func parenthesize(str string) string {
 	// eg. Castle (2009), but the DB has them.
 	// So, if "title" ends with four digits, we are going to add
 	// parenthesis around it.
-	stuff := `\d\d\d\d$`
+	stuff := `\d{4}$`
 	epsRegexp, _ := regexp.Compile(stuff)
 	return epsRegexp.ReplaceAllString(str, "($0)")
 }
 
-func InterestingShows(query *Query, user, password, server, database string) (interestingShows []*Episode, err error) {
+func InterestingShows(query *Query, user, password, server, database string) (interestingShows []*episode.Episode, err error) {
 	connectionString := fmt.Sprintf("%s:%s@%s/%s?charset=utf8",
 		user, password, server, database)
 	db, err := sql.Open("mysql", connectionString)
@@ -151,7 +153,7 @@ func InterestingShows(query *Query, user, password, server, database string) (in
 						return
 					}
 					log.Println("download the thing")
-					episodeData := Episode{title, eps, link, location}
+					episodeData := episode.Episode{title, eps, link, location}
 					interestingShows = append(interestingShows, &episodeData)
 				}
 			}
