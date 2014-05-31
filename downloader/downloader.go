@@ -23,6 +23,11 @@ func Download(queue chan *episode.Episode, i int, n notifier.Notifier) {
 			ep.Location,
 			ep.Title,
 			season)
+		if err := os.MkdirAll(destination, 0777); err != nil {
+			log.Println(i, " err: ", err)
+			log.Println(i, " cannot create directory: ", destination)
+			continue
+		}
 		filename := fmt.Sprintf("%s - %s.mkv", ep.Title, ep.Episode)
 		log.Printf("%d: getting %q %q via %q to be stored in %q\n",
 			i,
