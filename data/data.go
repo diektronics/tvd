@@ -3,7 +3,6 @@ package data
 import (
 	"database/sql"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -26,35 +25,30 @@ type Item struct {
 	Content string `xml:"encoded"`
 }
 
-type Feed string
-
-type Db struct {
-	User     string
-	Server   string
-	Password string
-	Database string
+type Feed struct {
+	s string
 }
 
-func match(reStr string, s string) (map[string]string, error) {
-	re := regexp.MustCompile(reStr)
-	matches := re.FindStringSubmatch(s)
-	if len(matches) == 0 {
-		return nil, errors.New("no matches found")
-	}
-	ret := make(map[string]string)
-	for i, name := range re.SubexpNames() {
-		if len(name) == 0 {
-			continue
-		}
-		ret[name] = matches[i]
-	}
+type Db struct {
+	connectionString string
+	linkRegexp       string
+}
 
-	return ret, nil
+func NewFeed(c *common.Configuration) *Feed {
+	return &Feed{c.Feed}
+}
+
+func NewDb(c *common.Configuration) *Db {
+	return &Db{
+		connectionString: fmt.Sprintf("%s:%s@%s/%s?charset=utf8",
+			c.DbUser, c.DbPassword, c.DbServer, c.DbDatabase),
+		linkRegexp: c.LinkRegexp,
+	}
 }
 
 func (i Item) Tokenize() (string, string) {
 	reStr := `(?P<name>.*)\s+(?P<eps>S\d{2}E\d{2})`
-	ret, err := match(reStr, i.Title)
+	ret, err := common.Match(reStr, i.Title)
 	if err != nil {
 		return i.Title, ""
 	}
@@ -67,7 +61,7 @@ func (i Item) Link(linkRegexp string) string {
 		strings.ToLower(strings.Replace(name, " ", "\\.", -1)),
 		strings.ToLower(eps))
 	reStr := "(?i)(?P<link>" + linkRegexp + titleEp + ")"
-	ret, err := match(reStr, i.Content)
+	ret, err := common.Match(reStr, i.Content)
 	if err != nil {
 		return ""
 	}
@@ -102,7 +96,7 @@ func (q Query) IsNewerThan(otherQ *Query) (bool, error) {
 }
 
 func (f Feed) Get() (q *Query, err error) {
-	stuff, err := http.Get(string(f))
+	stuff, err := http.Get(f.s)
 	if err != nil {
 		return
 	}
@@ -133,10 +127,8 @@ func parenthesize(str string) string {
 	return epsRegexp.ReplaceAllString(str, "($0)")
 }
 
-func (d *Db) GetInterestingShows(query *Query, linkRegexp string) (interestingShows []*common.Episode, err error) {
-	connectionString := fmt.Sprintf("%s:%s@%s/%s?charset=utf8",
-		d.User, d.Password, d.Server, d.Database)
-	db, err := sql.Open("mysql", connectionString)
+func (d *Db) GetInterestingShows(query *Query) (interestingShows []*common.Episode, err error) {
+	db, err := sql.Open("mysql", d.connectionString)
 	if err != nil {
 		return
 	}
@@ -176,7 +168,7 @@ func (d *Db) GetInterestingShows(query *Query, linkRegexp string) (interestingSh
 			s := shows[name][i]
 			if latest_ep < s.eps {
 				log.Printf("title: %q episode: %q latest_ep: %q\n", name, s.eps, latest_ep)
-				link := s.it.Link(linkRegexp)
+				link := s.it.Link(d.linkRegexp)
 
 				if len(link) != 0 {
 					log.Printf("link: %q\n", link)

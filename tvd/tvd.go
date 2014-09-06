@@ -11,13 +11,19 @@ import (
 )
 
 type Tvd struct {
-	c *common.Configuration
+	db   *data.Db
+	n    *notifier.Notifier
+	feed *data.Feed
 }
 
 const waitingTime = time.Duration(20) * time.Minute
 
 func New(c *common.Configuration) *Tvd {
-	return &Tvd{c}
+	return &Tvd{
+		db:   data.NewDb(c),
+		n:    notifier.New(c),
+		feed: data.NewFeed(c),
+	}
 }
 
 func reportAndWait(err error) {
@@ -28,23 +34,14 @@ func reportAndWait(err error) {
 func (t *Tvd) Run() {
 	// we are not going to get more than 10 eps to download...
 	q := make(chan *common.Episode, 10)
-	n := notifier.New(t.c)
 	// prepare the downloaders, 4 to not destroy BW
 	for i := 0; i < 4; i++ {
-		go downloader.Download(q, i, n)
+		go downloader.Download(q, i, t.n)
 	}
 
-	db := data.Db{
-		User:     t.c.DbUser,
-		Server:   t.c.DbServer,
-		Password: t.c.DbPassword,
-		Database: t.c.DbDatabase,
-	}
-
-	f := data.Feed(t.c.Feed)
 	var oldQuery *data.Query
 	for {
-		query, err := f.Get()
+		query, err := t.feed.Get()
 		if err != nil {
 			reportAndWait(err)
 			continue
@@ -57,7 +54,7 @@ func (t *Tvd) Run() {
 		}
 
 		if newer {
-			interestingShows, err := db.GetInterestingShows(query, t.c.LinkRegexp)
+			interestingShows, err := t.db.GetInterestingShows(query)
 			if err != nil {
 				reportAndWait(err)
 				continue

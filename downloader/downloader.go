@@ -17,19 +17,25 @@ func Download(queue chan *common.Episode, i int, n *notifier.Notifier) {
 	// wait for data
 	for ep := range queue {
 		parts := strings.Split(ep.Episode, "E")
-		season, _ := strconv.Atoi(strings.Trim(parts[0], "S"))
+		reStr := `S(?P<season>\d+)E\d+`
+		ret, err := common.Match(reStr, ep.Episode)
+		if err != nil {
+			log.Println(i, "Bad episode number:", ep.Episode)
+			continue
+		}
+		season, _ := strconv.Atoi(ret["season"])
 
 		destination := fmt.Sprintf("%s/%s/Season%d",
 			ep.Location,
 			ep.Title,
 			season)
 		if err := os.MkdirAll(destination, 0777); err != nil {
-			log.Println(i, " err: ", err)
-			log.Println(i, " cannot create directory: ", destination)
+			log.Println(i, "err:", err)
+			log.Println(i, "cannot create directory:", destination)
 			continue
 		}
 		filename := fmt.Sprintf("%s - %s.mkv", ep.Title, ep.Episode)
-		log.Printf("%d: getting %q %q via %q to be stored in %q\n",
+		log.Printf("%d getting %q %q via %q to be stored in %q\n",
 			i,
 			ep.Title,
 			ep.Episode,
@@ -43,19 +49,19 @@ func Download(queue chan *common.Episode, i int, n *notifier.Notifier) {
 			ep.Link}
 		output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 		if err != nil {
-			log.Println(i, " err: ", err)
-			log.Println(i, " output: ", string(output))
+			log.Println(i, "err:", err)
+			log.Println(i, "output:", string(output))
 			continue
 		}
 		parts = strings.Split(strings.TrimSpace(string(output)), "\n")
 		oldFilename := parts[len(parts)-1]
 		newFilename := fmt.Sprintf("%s/%s", destination, filename)
 		if err := os.Rename(oldFilename, newFilename); err != nil {
-			log.Println(i, " err: ", err)
+			log.Println(i, "err:", err)
 			continue
 		}
 
-		log.Printf("%d: %q download complete\n", i, filename)
+		log.Printf("%d %q download complete\n", i, filename)
 		n.Notify(newFilename)
 	}
 }
