@@ -3,8 +3,8 @@ package data
 import (
 	"database/sql"
 	"encoding/xml"
+	"errors"
 	"fmt"
-	_ "github.com/Go-SQL-Driver/MySQL"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,7 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"diektronics.com/carter/tvd/episode"
+	"diektronics.com/carter/tvd/common"
+	_ "github.com/Go-SQL-Driver/MySQL"
 )
 
 type Query struct {
@@ -25,34 +26,52 @@ type Item struct {
 	Content string `xml:"encoded"`
 }
 
-func (i Item) Tokenize() (name, eps string) {
-	stuff := `S\d{2}E\d{2}`
-	epsRegexp, _ := regexp.Compile(stuff)
-	start := epsRegexp.FindIndex([]byte(strings.ToUpper(i.Title)))
-	if start == nil {
-		name = i.Title
-		return
-	}
-	name = i.Title[:start[0]-1]
-	parts := strings.Fields(i.Title[start[0]:])
-	eps = parts[0]
+type Feed string
 
-	return
+type Db struct {
+	User     string
+	Server   string
+	Password string
+	Database string
 }
 
-func (i Item) Link() (link string) {
+func match(reStr string, s string) (map[string]string, error) {
+	re := regexp.MustCompile(reStr)
+	matches := re.FindStringSubmatch(s)
+	if len(matches) == 0 {
+		return nil, errors.New("no matches found")
+	}
+	ret := make(map[string]string)
+	for i, name := range re.SubexpNames() {
+		if len(name) == 0 {
+			continue
+		}
+		ret[name] = matches[i]
+	}
+
+	return ret, nil
+}
+
+func (i Item) Tokenize() (string, string) {
+	reStr := `(?P<name>.*)\s+(?P<eps>S\d{2}E\d{2})`
+	ret, err := match(reStr, i.Title)
+	if err != nil {
+		return i.Title, ""
+	}
+	return ret["name"], ret["eps"]
+}
+
+func (i Item) Link(linkRegexp string) string {
 	name, eps := i.Tokenize()
-	titleEp := fmt.Sprintf("%s\\.%s.*\\.720p",
+	titleEp := fmt.Sprintf("%s\\.%s\\.720p.*\\.mkv",
 		strings.ToLower(strings.Replace(name, " ", "\\.", -1)),
 		strings.ToLower(eps))
-	stuff := `http://www.uploadable.ch/file/\w+/` + titleEp
-	linkRegexp, _ := regexp.Compile(stuff)
-	linkStart := linkRegexp.FindIndex([]byte(strings.ToLower(i.Content)))
-	if len(linkStart) != 0 {
-		parts := strings.Split(i.Content[linkStart[0]:], "\"")
-		link = parts[0]
+	reStr := "(?i)(?P<link>" + linkRegexp + titleEp + ")"
+	ret, err := match(reStr, i.Content)
+	if err != nil {
+		return ""
 	}
-	return
+	return ret["link"]
 }
 
 func (q Query) Date() (time.Time, error) {
@@ -64,7 +83,11 @@ func (q Query) Date() (time.Time, error) {
 	return time.Parse(format, date)
 }
 
-func (q Query) After(otherQ Query) (bool, error) {
+func (q Query) IsNewerThan(otherQ *Query) (bool, error) {
+	if otherQ == nil {
+		return true, nil
+	}
+
 	parsedTime, err := q.Date()
 	if err != nil {
 		return false, err
@@ -78,8 +101,8 @@ func (q Query) After(otherQ Query) (bool, error) {
 	return parsedTime.After(otherParsedTime), nil
 }
 
-func AllShows() (q *Query, err error) {
-	stuff, err := http.Get("http://www.rlsbb.com/category/tv-shows/feed/")
+func (f Feed) Get() (q *Query, err error) {
+	stuff, err := http.Get(string(f))
 	if err != nil {
 		return
 	}
@@ -106,60 +129,73 @@ func parenthesize(str string) string {
 	// So, if "title" ends with four digits, we are going to add
 	// parenthesis around it.
 	stuff := `\d{4}$`
-	epsRegexp, _ := regexp.Compile(stuff)
+	epsRegexp := regexp.MustCompile(stuff)
 	return epsRegexp.ReplaceAllString(str, "($0)")
 }
 
-func InterestingShows(query *Query, user, password, server, database string) (interestingShows []*episode.Episode, err error) {
+func (d *Db) GetInterestingShows(query *Query, linkRegexp string) (interestingShows []*common.Episode, err error) {
 	connectionString := fmt.Sprintf("%s:%s@%s/%s?charset=utf8",
-		user, password, server, database)
+		d.User, d.Password, d.Server, d.Database)
 	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
 		return
 	}
 	defer db.Close()
 
-	for _, show := range query.ItemList {
-		title, eps := show.Tokenize()
+	type show struct {
+		eps string
+		it  Item
+	}
+	shows := make(map[string][]*show)
+	titles := []string{}
+	for _, s := range query.ItemList {
+		title, eps := s.Tokenize()
 		title = parenthesize(title)
+		shows[title] = append(shows[title], &show{eps, s})
+		titles = append(titles, fmt.Sprintf("%q", title))
+	}
 
-		dbQuery := fmt.Sprintf("SELECT latest_ep, location FROM series where name=%q", title)
-		var rows *sql.Rows
-		rows, err = db.Query(dbQuery)
+	dbQuery := fmt.Sprintf("SELECT name, latest_ep, location FROM series where name IN (%s)", strings.Join(titles, ","))
+	var rows *sql.Rows
+	rows, err = db.Query(dbQuery)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var name string
+		var latest_ep string
+		var location string
+		err = rows.Scan(&name, &latest_ep, &location)
 		if err != nil {
 			return
 		}
+		// We range the array in reverse because episodes are added on the top of the feed,
+		// and when a show has two episodes back to back, we will first find the newest one.
+		for i := len(shows[name]) - 1; i >= 0; i-- {
+			s := shows[name][i]
+			if latest_ep < s.eps {
+				log.Printf("title: %q episode: %q latest_ep: %q\n", name, s.eps, latest_ep)
+				link := s.it.Link(linkRegexp)
 
-		var latest_ep string
-		var location string
-
-		// Fetch rows. Only one results, if any
-		for rows.Next() {
-			// Scan the value to string
-			err = rows.Scan(&latest_ep, &location)
-			if err != nil {
-				return
-			}
-			if latest_ep < eps {
-				log.Printf("title: %q episode: %q latest_ep: %q\n", title, eps, latest_ep)
-				link := show.Link()
-
-				if link != "" {
+				if len(link) != 0 {
 					log.Printf("link: %q\n", link)
 					log.Println("update latest_ep in DB")
-					dbQuery = fmt.Sprintf("UPDATE series SET latest_ep=%q WHERE name=%q", eps, title)
+					dbQuery = fmt.Sprintf("UPDATE series SET latest_ep=%q WHERE name=%q", s.eps, name)
 					_, err = db.Exec(dbQuery)
 					if err != nil {
 						return
 					}
 					log.Println("download the thing")
-					episodeData := episode.Episode{title, eps, link, location}
-					interestingShows = append(interestingShows, &episodeData)
+					interestingShows = append(interestingShows, &common.Episode{
+						Title:    name,
+						Episode:  s.eps,
+						Link:     link,
+						Location: location,
+					})
 				}
 			}
-
 		}
-
 	}
 
 	return

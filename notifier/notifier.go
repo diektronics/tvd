@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/smtp"
 	"strings"
+
+	"diektronics.com/carter/tvd/common"
 )
 
 type Notifier struct {
@@ -13,6 +15,16 @@ type Notifier struct {
 	Recipient string
 	Sender    string
 	Password  string
+}
+
+func New(c *common.Configuration) *Notifier {
+	return &Notifier{
+		Addr:      c.MailAddr,
+		Port:      c.MailPort,
+		Recipient: c.MailRecipient,
+		Sender:    c.MailSender,
+		Password:  c.MailPassword,
+	}
 }
 
 func (n Notifier) Notify(filename string) {

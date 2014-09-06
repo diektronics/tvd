@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"diektronics.com/carter/tvd/episode"
+	"diektronics.com/carter/tvd/common"
 	"diektronics.com/carter/tvd/notifier"
 )
 
-func Download(queue chan *episode.Episode, i int, n notifier.Notifier) {
+func Download(queue chan *common.Episode, i int, n *notifier.Notifier) {
 	log.Printf("%d ready for action!\n", i)
 	// wait for data
 	for ep := range queue {
@@ -44,7 +44,7 @@ func Download(queue chan *episode.Episode, i int, n notifier.Notifier) {
 		output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 		if err != nil {
 			log.Println(i, " err: ", err)
-                        log.Println(i, " output: ", string(output))
+			log.Println(i, " output: ", string(output))
 			continue
 		}
 		parts = strings.Split(strings.TrimSpace(string(output)), "\n")

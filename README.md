@@ -1,13 +1,12 @@
-This project is aimed to learn Go.
+This project is aimed at learning Go.
 
-As a side effect, it will free me from manually download every day the TV 
-series I am currently following.
+As a side effect, it will free me from manually downloading every day the TV series I am currently following.
 
 The general design is as follows:
 * Get RSS from rlsbb.com
 * If it has changed, compare with list of interesting series and check if
   new episodes are available
-* Find NETLOAD links for 720p downloads
+* Find preferred downloader links for 720p downloads
 * Get the files in paralel using a pool of workers
   * Rename the files and copy them over to their destination:
     * Series we keep

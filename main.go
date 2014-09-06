@@ -2,88 +2,40 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"flag"
+	"fmt"
 	"log"
 	"os"
-	"time"
 
-	"diektronics.com/carter/tvd/data"
-	"diektronics.com/carter/tvd/downloader"
-	"diektronics.com/carter/tvd/episode"
-	"diektronics.com/carter/tvd/notifier"
+	"diektronics.com/carter/tvd/common"
+	"diektronics.com/carter/tvd/tvd"
 )
 
-func reportAndWait(err error) {
-	log.Println("err: ", err)
-	time.Sleep(20 * time.Minute)
-}
+var cfgFile = flag.String(
+	"cfg",
+	os.Getenv("HOME")+"/.config/tvd/config.json",
+	"Configuration file in JSON format indicating DB credentials and mailing details.",
+)
 
-type Configuration struct {
-	DbUser        string
-	DbServer      string
-	DbPassword    string
-	DbDatabase    string
-	MailAddr      string
-	MailPort      string
-	MailRecipient string
-	MailSender    string
-	MailPassword  string
+func getConfig() (*common.Configuration, error) {
+	cfg, err := os.Open(*cfgFile)
+	if err != nil {
+		return nil, fmt.Errorf("Open: %v", err)
+	}
+	decoder := json.NewDecoder(cfg)
+	c := &common.Configuration{}
+	if err := decoder.Decode(c); err != nil {
+		return nil, fmt.Errorf("Decode: %v", err)
+	}
+
+	return c, nil
 }
 
 func main() {
-	b, err := ioutil.ReadFile(os.Getenv("HOME") + "/.tvd/config.json")
+	flag.Parse()
+	c, err := getConfig()
 	if err != nil {
-		log.Println("err: ", err)
-		return
+		log.Fatal(err)
 	}
-
-	var c Configuration
-	err = json.Unmarshal(b, &c)
-	if err != nil {
-		log.Println("err: ", err)
-		return
-	}
-
-	// we are not going to get more than 10 eps to download...
-	queue := make(chan *episode.Episode, 10)
-	n := notifier.Notifier{c.MailAddr, c.MailPort, c.MailRecipient,
-		c.MailSender, c.MailPassword}
-	// prepare the downloaders, 4 to not destroy BW
-	for i := 0; i < 4; i++ {
-		go downloader.Download(queue, i, n)
-	}
-
-	var oldQuery *data.Query
-	for {
-		query, err := data.AllShows()
-		if err != nil {
-			reportAndWait(err)
-			continue
-		}
-
-		newer := true
-		if oldQuery != nil {
-			newer, err = query.After(*oldQuery)
-			if err != nil {
-				reportAndWait(err)
-				continue
-			}
-		}
-
-		if newer {
-			interestingShows, err := data.InterestingShows(query, c.DbUser,
-				c.DbPassword, c.DbServer, c.DbDatabase)
-			if err != nil {
-				reportAndWait(err)
-				continue
-			}
-
-			for _, show := range interestingShows {
-				queue <- show
-			}
-
-			oldQuery = query
-		}
-		time.Sleep(20 * time.Minute)
-	}
+	tvd.New(c).Run()
 }
