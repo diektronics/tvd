@@ -13,27 +13,28 @@ import (
 )
 
 type Downloader struct {
-	q chan *common.Episode
-	n *notifier.Notifier
+	Queue chan *common.Episode
+	n     *notifier.Notifier
 }
 
-func New(c *common.Configuration, q chan *common.Episode) *Downloader {
+func New(c *common.Configuration) *Downloader {
+	// we are not going to get more than 10 eps to download...
 	return &Downloader{
-		q: q,
-		n: notifier.New(c),
+		Queue: make(chan *common.Episode, 10),
+		n:     notifier.New(c),
 	}
 }
 
-func (d Downloader) Start(nWorkers int) {
+func (dl Downloader) Start(nWorkers int) {
 	for i := 0; i < nWorkers; i++ {
-		go d.worker(i)
+		go dl.worker(i)
 	}
 }
 
-func (d Downloader) worker(i int) {
+func (dl Downloader) worker(i int) {
 	log.Printf("%d ready for action!\n", i)
 	// wait for data
-	for ep := range d.q {
+	for ep := range dl.Queue {
 		parts := strings.Split(ep.Episode, "E")
 		reStr := `S(?P<season>\d+)E\d+`
 		ret, err := common.Match(reStr, ep.Episode)
@@ -80,6 +81,6 @@ func (d Downloader) worker(i int) {
 		}
 
 		log.Printf("%d %q download complete\n", i, filename)
-		d.n.Notify(newFilename)
+		dl.n.Notify(newFilename)
 	}
 }

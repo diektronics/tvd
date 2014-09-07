@@ -13,20 +13,16 @@ import (
 type Tvd struct {
 	db   *db.Db
 	feed *feed.Feed
-	d    *downloader.Downloader
-	q    chan *common.Episode
+	dl   *downloader.Downloader
 }
 
 const waitingTime = time.Duration(20) * time.Minute
 
 func New(c *common.Configuration) *Tvd {
-	// we are not going to get more than 10 eps to download...
-	q := make(chan *common.Episode, 10)
 	return &Tvd{
 		db:   db.New(c),
 		feed: feed.New(c),
-		d:    downloader.New(c, q),
-		q:    q,
+		dl:   downloader.New(c),
 	}
 }
 
@@ -37,7 +33,7 @@ func reportAndWait(err error) {
 
 func (t *Tvd) Run() {
 	// Start just 4 workers to not kill bandwidth.
-	t.d.Start(4)
+	t.dl.Start(4)
 	var oldData *feed.Data
 	for {
 		data, err := t.feed.Get()
@@ -53,14 +49,14 @@ func (t *Tvd) Run() {
 		}
 
 		if newer {
-			interestingShows, err := t.db.GetInterestingShows(data)
+			shows, err := t.db.GetMyShows(data)
 			if err != nil {
 				reportAndWait(err)
 				continue
 			}
 
-			for _, show := range interestingShows {
-				t.q <- show
+			for _, show := range shows {
+				t.dl.Queue <- show
 			}
 
 			oldData = data

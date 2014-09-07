@@ -25,7 +25,7 @@ func New(c *common.Configuration) *Db {
 	}
 }
 
-func (d *Db) GetInterestingShows(data *feed.Data) (interestingShows []*common.Episode, err error) {
+func (d *Db) GetMyShows(data *feed.Data) (interestingShows []*common.Episode, err error) {
 	db, err := sql.Open("mysql", d.connectionString)
 	if err != nil {
 		return
