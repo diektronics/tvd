@@ -25,7 +25,7 @@ func New(c *common.Configuration) *Db {
 	}
 }
 
-func (d *Db) GetMyShows(data *feed.Data) (interestingShows []*common.Episode, err error) {
+func (d *Db) GetMyShows(data *feed.Data) (myShows []*common.Episode, err error) {
 	db, err := sql.Open("mysql", d.connectionString)
 	if err != nil {
 		return
@@ -77,7 +77,7 @@ func (d *Db) GetMyShows(data *feed.Data) (interestingShows []*common.Episode, er
 						return
 					}
 					log.Println("download the thing")
-					interestingShows = append(interestingShows, &common.Episode{
+					myShows = append(myShows, &common.Episode{
 						Title:    name,
 						Episode:  s.eps,
 						Link:     link,

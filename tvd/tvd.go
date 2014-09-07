@@ -26,7 +26,7 @@ func New(c *common.Configuration) *Tvd {
 	}
 }
 
-func reportAndWait(err error) {
+func logAndWait(err error) {
 	log.Println("err: ", err)
 	time.Sleep(waitingTime)
 }
@@ -38,20 +38,20 @@ func (t *Tvd) Run() {
 	for {
 		data, err := t.feed.Get()
 		if err != nil {
-			reportAndWait(err)
+			logAndWait(err)
 			continue
 		}
 
 		newer, err := data.IsNewerThan(oldData)
 		if err != nil {
-			reportAndWait(err)
+			logAndWait(err)
 			continue
 		}
 
 		if newer {
 			shows, err := t.db.GetMyShows(data)
 			if err != nil {
-				reportAndWait(err)
+				logAndWait(err)
 				continue
 			}
 

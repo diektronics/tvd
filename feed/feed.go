@@ -22,7 +22,7 @@ type Item struct {
 }
 
 type Feed struct {
-	s string
+	url string
 }
 
 func New(c *common.Configuration) *Feed {
@@ -79,7 +79,7 @@ func (d Data) IsNewerThan(otherD *Data) (bool, error) {
 }
 
 func (f Feed) Get() (d *Data, err error) {
-	stuff, err := http.Get(f.s)
+	stuff, err := http.Get(f.url)
 	if err != nil {
 		return
 	}
