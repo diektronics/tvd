@@ -11,7 +11,7 @@ import (
 	"diektronics.com/carter/tvd/common"
 )
 
-type Data struct {
+type data struct {
 	DateStamp string `xml:"channel>lastBuildDate"`
 	ItemList  []Item `xml:"channel>item"`
 }
@@ -21,12 +21,18 @@ type Item struct {
 	Content string `xml:"encoded"`
 }
 
-type Feed struct {
-	url string
+type show struct {
+	eps string
+	it  Item
 }
 
-func New(c *common.Configuration) *Feed {
-	return &Feed{c.Feed}
+type Feed struct {
+	url    string
+	shows  map[string][]*show
+}
+
+func New(url string) *Feed {
+	return &Feed{url, make(map[string][]*show)}
 }
 
 func (i Item) Tokenize() (string, string) {
@@ -51,17 +57,16 @@ func (i Item) Link(linkRegexp string) string {
 	return ret["link"]
 }
 
-func (d Data) Date() (time.Time, error) {
+func date(timestamp string) (time.Time, error) {
 	format := "Mon, 02 Jan 2006 15:04:05 -0700"
-	date := d.DateStamp
-	if d.DateStamp == "" {
-		date = format
+	if timestamp == "" {
+		timestamp = format
 	}
-	return time.Parse(format, date)
+	return &time.Parse(format, timestamp)
 }
 
-func (d Data) IsNewerThan(otherD *Data) (bool, error) {
-	if otherD == nil {
+func (d data) IsNewerThan(time.Time *timestamp) (bool, error) {
+	if timestamp == nil {
 		return true, nil
 	}
 
@@ -70,32 +75,37 @@ func (d Data) IsNewerThan(otherD *Data) (bool, error) {
 		return false, err
 	}
 
-	otherParsedTime, err := otherD.Date()
-	if err != nil {
-		return false, err
-	}
-
-	return parsedTime.After(otherParsedTime), nil
+	return parsedTime.After(timestamp), nil
 }
 
-func (f Feed) Get() (d *Data, err error) {
+func (f Feed) Update(timestamp *time.Time) ([]string, *time.Time, error) {
 	stuff, err := http.Get(f.url)
 	if err != nil {
-		return
+		return nil, timestamp, err
 	}
 	defer stuff.Body.Close()
 
 	body, err := ioutil.ReadAll(stuff.Body)
 	if err != nil {
-		return
+		return nil, timestamp, err
 	}
 
-	//fmt.Printf("%s\n", body)
-
+	var d *data
 	err = xml.Unmarshal([]byte(string(body)), &d)
 	if err != nil {
-		return
+		return nil, timestamp, err
 	}
 
-	return
+	if !d.IsNewerThan(timestamp) {
+		return nil, timestamp, nil
+	}
+
+	newTimestamp := date(d.DateStamp)
+	for _, entry := range data.ItemList {
+		title, eps := entry.Tokenize()
+		title = parenthesize(title)
+		f.shows[title] = f.append(shows[title], &show{eps, entry})
+		titles = append(titles, fmt.Sprintf("%q", title))
+	}
+	return titles, newTimestamp, nil
 }
