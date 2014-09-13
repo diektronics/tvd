@@ -62,14 +62,20 @@ func date(timestamp string) (time.Time, error) {
 	if timestamp == "" {
 		timestamp = format
 	}
-	return &time.Parse(format, timestamp)
+	return time.Parse(format, timestamp)
 }
 
-func (d data) IsNewerThan(time.Time *timestamp) (bool, error) {
-	if timestamp == nil {
-		return true, nil
-	}
+func parenthesize(str string) string {
+	// RlsBB doesn't use parenthesis when a Series name has a year attached to it,
+	// eg. Castle (2009), but the DB has them.
+	// So, if "title" ends with four digits, we are going to add
+	// parenthesis around it.
+	stuff := `\d{4}$`
+	epsRegexp := regexp.MustCompile(stuff)
+	return epsRegexp.ReplaceAllString(str, "($0)")
+}
 
+func (d data) IsNewerThan(time.Time timestamp) (bool, error) { 
 	parsedTime, err := d.Date()
 	if err != nil {
 		return false, err
@@ -78,26 +84,27 @@ func (d data) IsNewerThan(time.Time *timestamp) (bool, error) {
 	return parsedTime.After(timestamp), nil
 }
 
-func (f Feed) Update(timestamp *time.Time) ([]string, *time.Time, error) {
+func (f Feed) Update(timestamp time.Time) (titles []string, newTimestamp time.Time, err error) {
+	newTimestamp = timestamp
 	stuff, err := http.Get(f.url)
 	if err != nil {
-		return nil, timestamp, err
+		return
 	}
 	defer stuff.Body.Close()
 
 	body, err := ioutil.ReadAll(stuff.Body)
 	if err != nil {
-		return nil, timestamp, err
+		return
 	}
 
 	var d *data
 	err = xml.Unmarshal([]byte(string(body)), &d)
 	if err != nil {
-		return nil, timestamp, err
+		return
 	}
 
 	if !d.IsNewerThan(timestamp) {
-		return nil, timestamp, nil
+		return
 	}
 
 	newTimestamp := date(d.DateStamp)
@@ -107,5 +114,24 @@ func (f Feed) Update(timestamp *time.Time) ([]string, *time.Time, error) {
 		f.shows[title] = f.append(shows[title], &show{eps, entry})
 		titles = append(titles, fmt.Sprintf("%q", title))
 	}
-	return titles, newTimestamp, nil
+	return
 }
+// func (f Feed) SetLinks(shows []*common.Episode) ([]*common.Episode, error) {}
+// 	// We range the array in reverse because episodes are added on the top of the feed,
+// 	// and when a show has two episodes back to back, we will first find the newest one.
+// 	for i := len(shows[name]) - 1; i >= 0; i-- {
+// 		s := shows[name][i]
+// 		if latest_ep < s.eps {
+// 			log.Printf("title: %q episode: %q latest_ep: %q\n", name, s.eps, latest_ep)
+// 			link := s.it.Link(d.linkRegexp)
+
+// 			if len(link) != 0 {
+// 				log.Printf("link: %q\n", link)
+// 				log.Println("update latest_ep in DB")
+//
+// 				log.Println("download the thing")
+
+// 			}
+// 		}
+// 	}
+// }

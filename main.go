@@ -28,7 +28,7 @@ func main() {
 	// Let's use only 4 downloaders to keep bandwidth sane.
 	dl := downloader.New(c, 4)
 	dm := datamanager.New(c)
-	var timestamp *time.Time
+	var timestamp time.Time
 	for {
 		if shows, timestamp, err := dm.GetMyShows(timestamp); err != nil {
 			log.Println(("err:", err))

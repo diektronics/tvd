@@ -22,16 +22,27 @@ func New(c *common.Configuration) *DataManager {
 	}
 }
 
-func (dm *DataManager) GetMyShows(timestamp *time.Time) ([]*common.Episode, *time.Time, error) {
+func (dm *DataManager) GetMyShows(timestamp time.Time) (myShows []*common.Episode, newTimestamptime.Time, err error) {
 	feed := feed.New(dm.feedUrl)
-
-	titles, timestamp, err := dm.feed.Get(timestamp)
-	if err != nil || titles == nil {
-		return nil, timestamp, err
+	var titles []string
+	titles, newTimestamp, err = dm.feed.Update(timestamp)
+	if err != nil || len(titles) == 0 {
+		return
 	}
 
-	// 1.Use titles to get db.MyShows
-	// 2.With results loop over shows and generate links
-	// 3. return
+	myShows, err = dm.db.GetMyShows(titles)
+	if err != nil || len(myShows) == 0 {
+		return
+	}
 
+	myShows, err = dm.feed.SetLinks(myShows)
+	f err != nil || len(myShows) == 0 {
+		return
+	}
+
+	if err = dm.db.UpdateMyShows(myShows); err != nil {
+		return
+	}
+
+	return
 }
